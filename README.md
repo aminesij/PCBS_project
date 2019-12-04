@@ -4,7 +4,7 @@ This repository contains all relevant scripts, documents and information for my 
 
 Summary (read the paragraphs below to know the full story): the objectives of this project are twofold: 
 
-1) I wish to build a R Shiny App that allows the user to interactively explore lyrics data
+1) I wish to build a R Shiny App that allows the user to interactively explore lyrics data. For a very, very, very, early first draft, see (and also to give you an idea of what a Shiny App is), here is a link to the app I am developing: https://aminesoja.shinyapps.io/Genius/
 
 2) I wish to perform a full-fledge text analysis/sentiment analysis on music lyrics. Lyrics will be accessed using web scraping methods while text analysis will require specific R packages like tm and tidytext. 
 
