@@ -67,7 +67,7 @@ levels(lyrics$genre)
 
 ```
 
-##Exploring the database: 
+## Exploring the database: 
 
 We perform a few analyses to obtain basic information about the structure of our data.
 
@@ -118,9 +118,9 @@ ggplot(count_year, aes(year, count, fill = genre)) +
 We find that the data contains roughly 40% of hip-hop songs and 60% of pop songs. There are 2347 pop artists (21 songs per artist) and 1410 hip-hop artists (24 songs per artist). The data is thus a bit asymmetrical, but probably representative of the general cultural offer. Importantly, sample size if sufficiently immense to have interesting insights from the analysis for both genres. The average year of release is 2009. Therefore, our study will mostly have implications for the past two decades, but more studies will be needed to generalize our findings. 
 
 
-##Cleaning the data: 
+## Cleaning the data: 
 
-#Handling stopwords
+# Handling stopwords
 
 Stopwords are words that are considered irrelevant for content analysis: "the", "in", "and", etc.... Most stopwords are included in the tm package. We also add our own stopwords.
 
@@ -137,7 +137,7 @@ my_stopwords_en <- data.frame(word = my_stopwords_en) #transform vector into dat
 ```
 
 
-#Tidying the dataframe
+# Tidying the dataframe
 
 The most crucial part of text analysis is to have a tidy data frame. We need to have one word per row and not one song per row. The unnest_tokens() function from the tidytext package allows us to do just that. In the same process, we remove stopwords by using the anti_join() function from dplyr. 
 
@@ -152,7 +152,7 @@ lyrics_data <- lyrics %>%
 
 ```
 
-##Preliminary analysis
+## Preliminary analysis
 
 The first interesting information that can be extracted from our data is basic word counts. What are the most common words in the database? 
 
@@ -242,7 +242,7 @@ wordcloud(words = lyrics_wordcloud_hip_hop$word, freq = lyrics_wordcloud_hip_hop
 At first glance, pop songs seem to address the subject of love much more than hip-hop, as evidenced by the greater prevalence of words like "love" or "baby" in pop lyrics. This already gives us an idea about our prediction. Let us now move forward to sentiment analysis. 
 
 
-##Sentiment analysis: 
+## Sentiment analysis: 
 
 Our protocole for sentiment analysis is fairly simple: we use a sentiment dictionary dataframe and merge it with our data. Subsequently, we will have a dataframe that associates each word with a positivity/negativity value. 
 
@@ -303,7 +303,7 @@ ggplot(lyrics_sentiments, aes(x = genre, y = mean_negativity)) +
 
 ```
 
-##Statistical analysis: 
+## Statistical analysis: 
 
 This difference should be testes statistically. We use a linear model to test our hypothesis: 
 
@@ -373,7 +373,7 @@ The impact of year and year:genre are not significant, and genre remains statist
 
 
 
-##Further analysis
+## Further analysis
 
 To better understand the effect of genre on negativity scores, let's observe the most common negative words per genre: 
 
@@ -474,6 +474,132 @@ ggplot(nrc_count, aes(sentiment, n, fill = genre)) +
 Hip-Hop's higher negativity seems indeed particularly salient in anger, but also disgust and fear. The difference is less striking for sadness. This should be further investigated in subsequent research.
 
 
+
+## Future directions:
+
+Obviously, despite the significant effects, this study is nothing but exploratory. Many limitations hinder our study's validity: 
+
+a) Better data: we have no indication that MetroLyrics collects song lyrics without any bias. Moreover, we would need data from older songs.
+
+b) Dictionaries: the dictionary approach to sentiment analysis is necessarily flawed. It relies on dictionaries that have been constituted for other purposes and may not be appropriate for this context
+
+c) Natural language: this was a word-by-word approach to text analysis. More natural approaches are needed to attribute negativity scores to song lyrics. To take a simple example: the sentence "life is not beautiful" would be considered as a positive sentence because "life" and "beautiful" are positive words in "Afinn". Machine learning techniques would probably increase the accuracy of dictionaires. 
+
+
+## Text analysis: the Shiny App
+
+I have written a Shiny App for text analysis. Unfortunately, due to lack of time, I was not able to go further than this first draft. This app generates wordclouds based on song and artist names input. It only works with French songs. Try for example "Serge Reggiani - Ma liberté" to see another wordcloud appear. I hope I will be able to advance it some time soon. 
+
+Link to the app: https://aminesoja.shinyapps.io/Genius/
+
+```
+#Load all relevant libraries
+
+library(shiny)
+library(wordcloud)
+library(genius)
+library(tm)
+library(ggwordcloud)
+library(wordcloud2)
+library(tidyverse)
+library(tidytext)
+
+# Define user interface
+
+ui <- fluidPage(
+   
+   # Application title
+   titlePanel("Text Analysis on Lyrics"),
+   h1("Welcome to my app !"), 
+   h2("Here, you will be able to perform text analysis on your favorite songs. Please follow the instructions."),
+   
+   # Sidebar where users can input artist and song name 
+   sidebarLayout(
+      sidebarPanel(
+        textInput(inputId = "artist", label = "Please insert artist name", value = "PNL"),
+        textInput(inputId = "song", label = "Please insert song name", value = "Jusqu'au dernier gramme") 
+        
+         
+      ),
+      
+      # A main panel to display the wordcloud, based on the user's input
+      mainPanel(
+        
+        wordcloud2Output("wordcloud")
+         
+      )
+   )
+)
+
+# Define server logic 
+
+server <- function(input, output) {
+  
+  #Create the stopwords dataframe. 
+   
+  stopwords_french <- as.data.frame(stopwords(kind = "french"))
+  names(stopwords_french)[1] <- "word"  
+  my_stopvector = c("comme", "g", "c'est", "j'les", "j'ai", "j'dois", "plus", "ça", "si", "d'mon", "j'suis")
+  my_stopwords <- data.frame(word = my_stopvector)
+  
+  #Import text data from genius.com, using the genius package
+  
+  lyrics <- reactive({ 
+    genius_lyrics(input$artist, input$song)
+  })
+  
+  
+  #Plot the wordcloud in relation to the user's input
+ 
+  output$wordcloud <- renderWordcloud2({
+    
+    lyrics() %>% 
+      unnest_tokens(word, lyric) %>%  #unnest to have one row per word
+      anti_join(stopwords_french) %>% 
+      anti_join(my_stopwords) %>% #use anti_join to remove stopwords from lyrics dataframe
+      count(word) %>% #count the occurence of each word
+      arrange(desc(n)) %>% #arrange words from the most frequent to the less frequent
+      mutate(frequence = n / nrow(lyrics())) %>% #create a new column "frequence"
+      arrange(desc(frequence)) %>% #arrange words by descending frequence
+      top_n(30, frequence) %>% #keep only the 30 most frequent words (by frequence)
+      wordcloud2(fontWeight = "normal", size = 0.5) #plot the wordcloud using the wordcloud2 package
+  
+    
+
+
+      
+  } 
+    
+    ) 
+  
+  
+    
+
+  
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server) 
+
+```
+
+## Remarks on coding style: 
+
+Coding in R is a peculiar experience. It is probably one of the most diverse programming languages: the same task can be coded in so many different ways. The Tidyverse packages are a telling example: one could master data analysis in R using nothing but the tidyverse, and feel uncomfortable performing the same analyses using R base functions. 
+
+I personnally am a fan of the Tidyverse. Of course, I'm biased: this is how I have learnt to code in R in the first place. But the Tidyverse allows for a very ergonomic and, most importantly, coherent code. The Tidyverse is systemic everything fits together: pipe operators, dplyr functions, the tidy data principle, etc... I chose to code mostly in Tidyverse because it is familiar and more ergonomic to me. Of course, I must point limitations to the Tidyverse: 
+
+- it is sometimes frustrating to combine Tidyverse with non-Tidyverse functions
+- as all packages, Tidyverse is quite volatile: functions are often updates. This can be a good thing of course, but also upsetting sometimes. The great advantage of base R is its stability
+
+
+## Personal experience:
+
+It's been a long run... I had barely coded before entering the Cogmaster. I knew a few basics in R (writing a loop...) but that is pretty much it, coming from a History background. This semester has been rough but transformative. I feel like I have progressed quite a bit in data analysis and in R and Python programming. PCBS, Data Camp and my lab internship have proved very useful to develop new skills. 
+
+This project took me quite some time, but it was worth it. I'm glad I could perform my first data analysis project on my own. For text analysis in R, I strongly recommend the Data Camp courses. I obviously still need to progress in coding and especially in statistics, but it's a decent start I guess. 
+
+I found and still find Github difficult to use and not intuitive. But I realize now what a powerful this is, and will one day master this beast. 
 
 
 
