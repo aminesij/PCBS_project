@@ -35,7 +35,18 @@ We aim to perform sentiment analysis on these lyrics. We will assign a mean nega
 
 This analysis will be coded in R 3.5.2.
 
+## This study on Github: 
+
+On this repo, you will find: 
+* a script for the text analysis performed on the Kaggle data frame: it is called "text analysis script"
+* a script for the Shiny app: it is called "app"
+* the R project in which the code was written: it is called "song_lyrics_analysis"
+* please discard the "FEEL.csv" database, it is not relevant for this study
+* I was not able to push nor upload the lyrics.csv database (the Kaggle database that I will analyze below): it is much, much too big. 
+
 ## Loading data: 
+
+Preliminary remark: this database is quite immense. I have done my best to keep running time as low as possible, but some operations may take a bit long (10 to 20 seconds). 
 
 ```
 require(readr)
